@@ -2,11 +2,13 @@
 #include "metrics.h"
 #include "rop.h"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -41,11 +43,16 @@ int main(int argc, char **argv) {
     std::ofstream csv(fs::path(out_dir) / "csv" / "metrics.csv");
     csv << metric_header();
 
-    bool first = true;
+    std::vector<fs::path> files;
     for (const auto &e : fs::directory_iterator(in_dir)) {
-        if (e.path().extension() != ".ppm") continue;
-        const Img img = read_ppm(e.path().string());
-        const std::string name = stem(e.path());
+        if (e.path().extension() == ".ppm") files.push_back(e.path());
+    }
+    std::sort(files.begin(), files.end());
+
+    bool first = true;
+    for (const auto &path : files) {
+        const Img img = read_ppm(path.string());
+        const std::string name = stem(path);
         write_ppm((fs::path(out_dir) / "images" / (name + "_input.ppm")).string(), img);
         csv << metric_row(measure(img, name, "input", p.omega, 0.0));
 

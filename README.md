@@ -31,8 +31,9 @@ scripts\run.bat
 
 ## Output
 
-- `assets/input`: generated degraded demo images.
+- `assets/input`: downloaded real-photo demo images and `sources.md`.
 - `output/images`: raw PPM and converted PNG results.
-- `output/charts`: comparison panels, heatmaps, metric charts and ablation charts.
+- `output/charts`: publication-style qualitative panels, luminance profiles, metric charts and parameter ablation charts.
 - `output/csv/metrics.csv`: runtime and no-reference statistics.
 - `report/analysis.md`: Chinese figure notes and reading-report analysis.
+- `report/figure_notes.md`: per-figure explanations for direct use in the course report.
