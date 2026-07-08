@@ -199,7 +199,7 @@ static std::vector<float> refine_c(const Img &img, const Img &t0, const Params &
     constexpr float beta = 10.0f;
     constexpr float tao = 1.618f;
     std::vector<float> c0(n), c(n);
-    for (int i = 0; i < n; ++i) c0[i] = c[i] = (t0.data[i * 3] + t0.data[i * 3 + 1] + t0.data[i * 3 + 2]) / 3.0f;
+    for (int i = 0; i < n; ++i) c0[i] = c[i] = t0.data[i * 3] + t0.data[i * 3 + 1] + t0.data[i * 3 + 2];
     Vec3 snu{t0.data[0], t0.data[1], t0.data[2]};
     snu = l1_norm(snu);
     const float s2 = snu[0] * snu[0] + snu[1] * snu[1] + snu[2] * snu[2];
@@ -319,17 +319,13 @@ Res run_rop_plus(const Img &img, const Params &p) {
     r.init_scatter = initial_scatter(img, rgb, snu);
     r.air = fix_air(img, r.init_scatter, 0.01f, true);
 
-    Img t0(img.w, img.h);
-    for (int i = 0; i < n * 3; ++i) t0.data[i] = clamp01(1.0f - p.omega * r.init_scatter.data[i]);
-    r.coef = refine_c(img, t0, p);
-    Vec3 ts{t0.data[0], t0.data[1], t0.data[2]};
-    ts = l1_norm(ts);
+    r.coef = refine_c(img, r.init_scatter, p);
     Img t(img.w, img.h);
     r.scatter = Img(img.w, img.h);
     for (int i = 0; i < n; ++i) {
         for (int ch = 0; ch < 3; ++ch) {
-            t.data[i * 3 + ch] = clamp01(r.coef[i] * ts[ch]);
-            r.scatter.data[i * 3 + ch] = clamp01(1.0f - t.data[i * 3 + ch]);
+            r.scatter.data[i * 3 + ch] = clamp01(r.coef[i] * snu[ch]);
+            t.data[i * 3 + ch] = clamp01(1.0f - p.omega * r.scatter.data[i * 3 + ch]);
         }
     }
     r.out = stretch_gamma(recover_from_t(img, t, r.air), p.low_pct, p.high_pct);
