@@ -8,7 +8,8 @@ if command -v conda >/dev/null 2>&1; then
   conda activate py312 2>/dev/null || true
 fi
 
-python3 scripts/make_demo.py
+rm -rf assets/input
+python3 scripts/download_paper_images.py
 rm -rf output/images output/charts output/csv
 mkdir -p output/images output/charts output/csv
 make
