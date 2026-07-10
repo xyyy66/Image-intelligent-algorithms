@@ -55,7 +55,7 @@ static Img initial_scatter(const Img &img, Vec3 rgb, Vec3 &snu) {
     return st;
 }
 
-static Vec3 fix_air(const Img &img, Img &st, float top_rate, bool plus) {
+static Vec3 fix_air(const Img &img, Img &st, Vec3 snu, float top_rate, bool plus) {
     const int n = img.w * img.h;
     std::vector<std::pair<float, int>> a;
     a.reserve(n);
@@ -75,12 +75,11 @@ static Vec3 fix_air(const Img &img, Img &st, float top_rate, bool plus) {
 
     std::sort(a.begin(), a.end(), [](auto x, auto y) { return x.first > y.first; });
     const float sek = a[k - 1].first;
-    const float s0 = std::max(st.data[0] + st.data[1] + st.data[2], 1e-6f);
     for (int i = 0; i < n; ++i) {
         const float ss = st.data[i * 3] + st.data[i * 3 + 1] + st.data[i * 3 + 2];
         if (ss <= sek) continue;
         for (int c = 0; c < 3; ++c) {
-            const float limit = plus ? (2.0f * sek * st.data[c] / s0) : (2.0f * sek / 3.0f);
+            const float limit = plus ? (2.0f * sek * snu[c]) : (2.0f * sek / 3.0f);
             st.data[i * 3 + c] = clamp01(limit - st.data[i * 3 + c]);
         }
     }
@@ -115,13 +114,20 @@ static float percentile(std::vector<float> v, float pct) {
 
 static Img stretch_gamma(const Img &src, float lo_pct, float hi_pct) {
     Img out = src;
-    std::vector<float> vals;
-    vals.reserve(src.data.size());
-    for (float x : src.data) if (std::isfinite(x)) vals.push_back(x);
-    const float lo = percentile(vals, lo_pct);
-    const float hi = percentile(vals, hi_pct);
-    const float den = std::max(hi - lo, 1e-5f);
-    for (float &x : out.data) x = clamp01((x - lo) / den);
+    for (int c = 0; c < 3; ++c) {
+        std::vector<float> vals;
+        vals.reserve(src.w * src.h);
+        for (int i = 0; i < src.w * src.h; ++i) {
+            float x = src.data[i * 3 + c];
+            if (std::isfinite(x)) vals.push_back(x);
+        }
+        const float lo = percentile(vals, lo_pct);
+        const float hi = percentile(vals, hi_pct);
+        const float den = std::max(hi - lo, 1e-5f);
+        for (int i = 0; i < src.w * src.h; ++i) {
+            out.data[i * 3 + c] = clamp01((src.data[i * 3 + c] - lo) / den);
+        }
+    }
     return gamma_y(out);
 }
 
@@ -189,7 +195,7 @@ static float div_at(const std::vector<float> &xv, const std::vector<float> &yv, 
     return xv[y * w + xl] - xv[id] + yv[yu * w + x] - yv[id];
 }
 
-static std::vector<float> refine_c(const Img &img, const Img &t0, const Params &p) {
+static std::vector<float> refine_c(const Img &img, const Img &t0, Vec3 snu, const Params &p) {
     const int w = img.w;
     const int h = img.h;
     const int n = w * h;
@@ -200,8 +206,6 @@ static std::vector<float> refine_c(const Img &img, const Img &t0, const Params &
     constexpr float tao = 1.618f;
     std::vector<float> c0(n), c(n);
     for (int i = 0; i < n; ++i) c0[i] = c[i] = t0.data[i * 3] + t0.data[i * 3 + 1] + t0.data[i * 3 + 2];
-    Vec3 snu{t0.data[0], t0.data[1], t0.data[2]};
-    snu = l1_norm(snu);
     const float s2 = snu[0] * snu[0] + snu[1] * snu[1] + snu[2] * snu[2];
 
     std::vector<float> d1i, d2i, d1c, d2c;
@@ -281,7 +285,7 @@ Res run_rop(const Img &img, const Params &p) {
     Res r;
     Vec3 snu{};
     r.init_scatter = initial_scatter(img, mean_rgb(img), snu);
-    r.air = fix_air(img, r.init_scatter, 0.001f, false);
+    r.air = fix_air(img, r.init_scatter, snu, 0.001f, false);
     const int m = std::min(img.w, img.h);
     const float rate = m < 800 ? 0.02f : (m < 1500 ? 0.01f : 0.005f);
     Img small = resize_bilinear(r.init_scatter, std::max(2, static_cast<int>(img.w * rate)), std::max(2, static_cast<int>(img.h * rate)));
@@ -317,9 +321,9 @@ Res run_rop_plus(const Img &img, const Params &p) {
     }
     Vec3 snu{};
     r.init_scatter = initial_scatter(img, rgb, snu);
-    r.air = fix_air(img, r.init_scatter, 0.01f, true);
+    r.air = fix_air(img, r.init_scatter, snu, 0.01f, true);
 
-    r.coef = refine_c(img, r.init_scatter, p);
+    r.coef = refine_c(img, r.init_scatter, snu, p);
     Img t(img.w, img.h);
     r.scatter = Img(img.w, img.h);
     for (int i = 0; i < n; ++i) {
