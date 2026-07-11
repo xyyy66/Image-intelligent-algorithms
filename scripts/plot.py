@@ -221,10 +221,10 @@ def read_sources() -> str:
 
 def write_report(df: pd.DataFrame, names: list[str], figs: list[Path]):
     lines = [
-        "# ROP 论文真实照片实验图文说明",
+        "# ROP 原数据集照片实验图文说明",
         "",
         "## 素材来源",
-        "本版本使用 ROP 官方论文中的三张真实代表性退化照片，分别是雾霾场景 (paper_hazy1)、沙尘场景 (paper_sandstorm1) 以及水下场景 (paper_underw1)，保证 C++ 算法可以一键复现论文效果。",
+        "本版本使用用户从原数据集中下载的真实代表性退化照片进行测试，包含 5 张雾霾场景照片 (hazy_1 ~ hazy_5)、5 张沙尘场景照片 (sandstorm_1 ~ sandstorm_5) 以及 5 张水下场景照片 (underwater_1 ~ underwater_5)，保证 C++ 算法可以对样本进行一键复现和评测。",
         "",
         "## 算法与绘图逻辑",
         "ROP 的核心是将观测图像 $I$ 投影到统一光谱方向，得到散射图 $\\tilde{t}$，再由物理退化模型恢复潜在清晰图像 $J$。ROP$^{+}$ 在统一光谱估计时排除方向偏离大的像素，并用边缘加权的散射系数细化减少前景误估计。",

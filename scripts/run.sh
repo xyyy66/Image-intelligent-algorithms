@@ -9,7 +9,7 @@ if command -v conda >/dev/null 2>&1; then
 fi
 
 rm -rf assets/input
-python3 scripts/download_paper_images.py
+python3 scripts/prepare_dataset.py
 rm -rf output/images output/charts output/csv
 mkdir -p output/images output/charts output/csv
 make
