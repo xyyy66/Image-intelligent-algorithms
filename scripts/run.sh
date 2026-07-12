@@ -9,12 +9,12 @@ if command -v conda >/dev/null 2>&1; then
 fi
 
 rm -rf assets/input
-python3 scripts/prepare_dataset.py
+python3 scripts/prepare_picture_paper.py
 rm -rf output/images output/charts output/csv
 mkdir -p output/images output/charts output/csv
 make
 ./build/rop_demo --input assets/input --output output --omega 0.8 --iter 10 --gamma 50
 python3 scripts/plot.py
+python3 scripts/copy_outputs_to_picture_paper.py
 
-echo "Done. Charts: output/charts"
-echo "Report text: report/analysis.md"
+echo "Done. All outputs copied to PicturePaper."
